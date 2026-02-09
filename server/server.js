@@ -20,62 +20,7 @@ app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/ai', require('./routes/ai'));
 
-// Debug Info Route
-app.get('/api/debug/info', (req, res) => {
-    const fs = require('fs');
-    try {
-        const dbDir = process.env.DB_PATH || './data';
-        const dbFile = path.join(dbDir, 'expense.db');
-        const dbStat = fs.existsSync(dbFile) ? fs.statSync(dbFile) : null;
 
-        let dirFiles = [];
-        try {
-            if (fs.existsSync(dbDir)) {
-                dirFiles = fs.readdirSync(dbDir);
-            } else {
-                dirFiles = ['Directory does not exist'];
-            }
-        } catch (e) {
-            dirFiles = [e.message];
-        }
-
-        // 查詢 DB 記錄數
-        let dbStats = {};
-        try {
-            const db = require('./db');
-            dbStats = {
-                transactions: db.prepare('SELECT COUNT(*) as c FROM transactions').get().c,
-                accounts: db.prepare('SELECT COUNT(*) as c FROM accounts').get().c,
-                categories: db.prepare('SELECT COUNT(*) as c FROM categories').get().c,
-                sampleAccounts: db.prepare('SELECT id, name FROM accounts LIMIT 5').all(),
-                sampleCategories: db.prepare('SELECT id, name FROM categories LIMIT 10').all(),
-            };
-        } catch (e) {
-            dbStats = { error: e.message };
-        }
-
-        res.json({
-            timestamp: new Date().toISOString(),
-            env: {
-                DB_PATH: process.env.DB_PATH,
-                NODE_ENV: process.env.NODE_ENV
-            },
-            database: {
-                fullPath: dbFile,
-                exists: !!dbStat,
-                size: dbStat ? dbStat.size : 0,
-                modified: dbStat ? dbStat.mtime : null
-            },
-            directory: {
-                path: dbDir,
-                files: dirFiles
-            },
-            records: dbStats
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message, stack: err.stack });
-    }
-});
 
 // 健康檢查 (必須在 catch-all 之前)
 app.get('/health', (req, res) => {
