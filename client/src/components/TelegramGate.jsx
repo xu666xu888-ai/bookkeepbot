@@ -8,19 +8,13 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 非 Telegram 環境封鎖頁面
+    // 非 Telegram 環境 — 偽裝 404
     if (status === 'blocked') {
         return (
-            <div className="min-h-dvh flex items-center justify-center px-6">
-                <div className="w-full max-w-xs text-center animate-scale-in">
-                    <div className="text-5xl mb-6">🔒</div>
-                    <h1 className="text-xl font-semibold mb-3 text-text">僅限 Telegram 使用</h1>
-                    <p className="text-sm text-text-dim leading-relaxed">
-                        此應用僅能在 Telegram Mini App 中開啟。
-                    </p>
-                    <p className="text-sm text-text-dim mt-4 leading-relaxed">
-                        請在 Telegram 中搜尋我們的 Bot，<br />點擊 <span className="text-accent">「📊 開啟記帳」</span> 按鈕。
-                    </p>
+            <div className="min-h-dvh flex items-center justify-center px-6" style={{ background: '#fff', color: '#000' }}>
+                <div className="text-center">
+                    <h1 style={{ fontSize: '72px', fontWeight: 'bold', margin: 0 }}>404</h1>
+                    <p style={{ color: '#666', marginTop: '8px' }}>Not Found</p>
                 </div>
             </div>
         );
