@@ -73,6 +73,12 @@ async function syncToSheets() {
             ORDER BY t.date DESC, t.time DESC, t.id DESC
         `).all();
 
+        // 🛡️ 安全閥：如果 DB 是空的，絕不覆蓋 Sheet（保護最後一次有效備份）
+        if (rows.length === 0) {
+            console.warn('⚠️ DB 交易數為 0，跳過同步以保護 Sheet 備份');
+            return;
+        }
+
         // 準備寫入資料
         const header = ['ID', '日期', '時間', '品項', '金額', '帳戶', '分類', '備註', '建立時間'];
         const data = rows.map(r => [
