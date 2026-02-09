@@ -35,12 +35,12 @@ export default function LoginPage({ onSuccess, telegramUser }) {
         <div className="min-h-dvh flex items-center justify-center px-6">
             <div className="w-full max-w-xs animate-scale-in">
                 <div className="text-center mb-8">
-                    <h1 className="text-xl font-semibold tracking-tight text-text">
-                        史萊姆-好玩遊戲區
+                    <h1 className="text-center text-xl font-semibold tracking-tight mb-8 text-text">
+                        System Status
                     </h1>
                     {telegramUser && (
                         <p className="text-sm text-text-dim mt-2">
-                            👋 {telegramUser.first_name}，請輸入驗證碼
+                            Verification Required
                         </p>
                     )}
                 </div>
