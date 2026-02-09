@@ -79,10 +79,12 @@ async function syncToSheets() {
             return;
         }
 
-        // 準備寫入資料
-        const header = ['ID', '日期', '時間', '品項', '金額', '帳戶', '分類', '備註', '建立時間'];
+        // 準備寫入資料（DB 中 amount < 0 為收入, > 0 為支出）
+        const header = ['ID', '日期', '時間', '品項', '類型', '金額', '帳戶', '分類', '備註', '建立時間'];
         const data = rows.map(r => [
-            r.id, r.date, r.time, r.item, r.amount,
+            r.id, r.date, r.time, r.item,
+            r.amount < 0 ? '收入' : '支出',
+            Math.abs(r.amount),
             r.account_name || '', r.category_name || '',
             r.description || '', r.created_at || ''
         ]);
