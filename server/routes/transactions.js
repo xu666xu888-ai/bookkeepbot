@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { triggerBackup } = require('../services/sheetsBackup');
 
 const router = express.Router();
 
@@ -107,6 +108,7 @@ router.post('/', (req, res) => {
     `).get(result.lastInsertRowid);
 
         res.status(201).json(newRow);
+        triggerBackup();
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -152,6 +154,7 @@ router.put('/:id', (req, res) => {
     `).get(id);
 
         res.json(updated);
+        triggerBackup();
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -170,6 +173,7 @@ router.delete('/:id', (req, res) => {
 
         db.prepare('DELETE FROM transactions WHERE id = ?').run(id);
         res.json({ message: '已刪除', id: Number(id) });
+        triggerBackup();
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
