@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
+import ActionSheet from './ActionSheet';
 
 export default function TransactionForm({ accounts, categories, transaction, onSave, onClose, onBatchSave }) {
     const now = new Date();
@@ -22,6 +23,10 @@ export default function TransactionForm({ accounts, categories, transaction, onS
     const [aiLoading, setAiLoading] = useState(false);
     const [aiResults, setAiResults] = useState(null); // 多筆解析結果
     const [aiError, setAiError] = useState('');
+
+    // Bottom Sheet 狀態
+    const [showAccountSheet, setShowAccountSheet] = useState(false);
+    const [showCategorySheet, setShowCategorySheet] = useState(false);
 
     const update = (key, value) => setForm(f => ({ ...f, [key]: value }));
 
@@ -257,39 +262,32 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                             </div>
                         </div>
 
-                        {/* 帳戶 + 分類 */}
+                        {/* 帳戶 + 分類 (改為 Bottom Sheet) */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="relative">
                                 <label className="text-xs text-text-dim mb-1.5 block">帳戶</label>
-                                <select
-                                    value={form.account_id}
-                                    onChange={e => update('account_id', e.target.value)}
-                                    required
-                                    style={{ backgroundColor: '#18181b', color: '#fff' }}
-                                    className="w-full border border-border rounded-xl px-3 py-3 text-sm
-                                   focus:outline-none focus:border-accent transition-all appearance-none"
+                                <div
+                                    onClick={() => setShowAccountSheet(true)}
+                                    className="w-full bg-[#1c1c1e] text-white border border-border rounded-xl px-3 py-3 text-sm
+                                       flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer select-none"
                                 >
-                                    <option value="">選擇</option>
-                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-dim">
-                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                                    <span className={!form.account_id ? 'text-text-dim' : ''}>
+                                        {accounts.find(a => a.id == form.account_id)?.name || '選擇'}
+                                    </span>
+                                    <svg className="fill-current h-4 w-4 text-text-dim" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                                 </div>
                             </div>
                             <div className="relative">
                                 <label className="text-xs text-text-dim mb-1.5 block">分類</label>
-                                <select
-                                    value={form.category_id}
-                                    onChange={e => update('category_id', e.target.value)}
-                                    style={{ backgroundColor: '#18181b', color: '#fff' }}
-                                    className="w-full border border-border rounded-xl px-3 py-3 text-sm
-                                   focus:outline-none focus:border-accent transition-all appearance-none"
+                                <div
+                                    onClick={() => setShowCategorySheet(true)}
+                                    className="w-full bg-[#1c1c1e] text-white border border-border rounded-xl px-3 py-3 text-sm
+                                       flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer select-none"
                                 >
-                                    <option value="">無</option>
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-dim">
-                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                                    <span className={!form.category_id ? 'text-text-dim' : ''}>
+                                        {categories.find(c => c.id == form.category_id)?.name || '無'}
+                                    </span>
+                                    <svg className="fill-current h-4 w-4 text-text-dim" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -344,9 +342,29 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                             >{transaction ? '更新' : '儲存'}</button>
                         </div>
                     </form>
-                )
-                }
-            </div >
-        </div >
+                )}
+            </div>
+
+            <ActionSheet
+                visible={showAccountSheet}
+                onClose={() => setShowAccountSheet(false)}
+                title="選擇帳戶"
+                options={accounts.map(a => ({ label: a.name, value: a.id }))}
+                onSelect={(val) => update('account_id', val)}
+                selectedValue={Number(form.account_id)}
+            />
+
+            <ActionSheet
+                visible={showCategorySheet}
+                onClose={() => setShowCategorySheet(false)}
+                title="選擇分類"
+                options={[
+                    { label: '無', value: '' },
+                    ...categories.map(c => ({ label: c.name, value: c.id }))
+                ]}
+                onSelect={(val) => update('category_id', val)}
+                selectedValue={form.category_id ? Number(form.category_id) : ''}
+            />
+        </div>
     );
 }
