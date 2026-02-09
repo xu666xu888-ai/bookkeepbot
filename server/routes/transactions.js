@@ -1,0 +1,178 @@
+const express = require('express');
+const db = require('../db');
+const { authMiddleware } = require('../middleware/auth');
+
+const router = express.Router();
+
+// 所有路由需要認證
+router.use(authMiddleware);
+
+/**
+ * GET /api/transactions
+ * 查詢參數: search, account_id, category_id, date_from, date_to, page, limit
+ */
+router.get('/', (req, res) => {
+    try {
+        const {
+            search, account_id, category_id,
+            date_from, date_to,
+            page = 1, limit = 50
+        } = req.query;
+
+        let where = [];
+        let params = {};
+
+        if (search) {
+            where.push("(t.item LIKE @search OR t.description LIKE @search)");
+            params.search = `%${search}%`;
+        }
+        if (account_id) {
+            where.push("t.account_id = @account_id");
+            params.account_id = Number(account_id);
+        }
+        if (category_id) {
+            where.push("t.category_id = @category_id");
+            params.category_id = Number(category_id);
+        }
+        if (date_from) {
+            where.push("t.date >= @date_from");
+            params.date_from = date_from;
+        }
+        if (date_to) {
+            where.push("t.date <= @date_to");
+            params.date_to = date_to;
+        }
+
+        const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+        const offset = (Number(page) - 1) * Number(limit);
+
+        // 取得總數
+        const countRow = db.prepare(`
+      SELECT COUNT(*) as total FROM transactions t ${whereClause}
+    `).get(params);
+
+        // 取得資料（含帳戶、分類名稱）
+        const rows = db.prepare(`
+      SELECT t.*, a.name as account_name, c.name as category_name
+      FROM transactions t
+      LEFT JOIN accounts a ON t.account_id = a.id
+      LEFT JOIN categories c ON t.category_id = c.id
+      ${whereClause}
+      ORDER BY t.date DESC, t.time DESC, t.id DESC
+      LIMIT @limit OFFSET @offset
+    `).all({ ...params, limit: Number(limit), offset });
+
+        res.json({
+            data: rows,
+            total: countRow.total,
+            page: Number(page),
+            limit: Number(limit)
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * POST /api/transactions
+ * Body: { date, time, item, amount, description, account_id, category_id }
+ */
+router.post('/', (req, res) => {
+    try {
+        const { date, time, item, amount, description, account_id, category_id } = req.body;
+
+        if (!date || !time || !item || amount === undefined || !account_id) {
+            return res.status(400).json({ error: '缺少必要欄位：date, time, item, amount, account_id' });
+        }
+
+        const stmt = db.prepare(`
+      INSERT INTO transactions (date, time, item, amount, description, account_id, category_id)
+      VALUES (@date, @time, @item, @amount, @description, @account_id, @category_id)
+    `);
+
+        const result = stmt.run({
+            date, time, item,
+            amount: Number(amount),
+            description: description || '',
+            account_id: Number(account_id),
+            category_id: category_id ? Number(category_id) : null
+        });
+
+        const newRow = db.prepare(`
+      SELECT t.*, a.name as account_name, c.name as category_name
+      FROM transactions t
+      LEFT JOIN accounts a ON t.account_id = a.id
+      LEFT JOIN categories c ON t.category_id = c.id
+      WHERE t.id = ?
+    `).get(result.lastInsertRowid);
+
+        res.status(201).json(newRow);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * PUT /api/transactions/:id
+ */
+router.put('/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { date, time, item, amount, description, account_id, category_id } = req.body;
+
+        const existing = db.prepare('SELECT * FROM transactions WHERE id = ?').get(id);
+        if (!existing) {
+            return res.status(404).json({ error: '交易記錄不存在' });
+        }
+
+        const stmt = db.prepare(`
+      UPDATE transactions SET
+        date = @date, time = @time, item = @item, amount = @amount,
+        description = @description, account_id = @account_id, category_id = @category_id
+      WHERE id = @id
+    `);
+
+        stmt.run({
+            id: Number(id),
+            date: date || existing.date,
+            time: time || existing.time,
+            item: item || existing.item,
+            amount: amount !== undefined ? Number(amount) : existing.amount,
+            description: description !== undefined ? description : existing.description,
+            account_id: account_id ? Number(account_id) : existing.account_id,
+            category_id: category_id !== undefined ? (category_id ? Number(category_id) : null) : existing.category_id
+        });
+
+        const updated = db.prepare(`
+      SELECT t.*, a.name as account_name, c.name as category_name
+      FROM transactions t
+      LEFT JOIN accounts a ON t.account_id = a.id
+      LEFT JOIN categories c ON t.category_id = c.id
+      WHERE t.id = ?
+    `).get(id);
+
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * DELETE /api/transactions/:id
+ */
+router.delete('/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const existing = db.prepare('SELECT * FROM transactions WHERE id = ?').get(id);
+        if (!existing) {
+            return res.status(404).json({ error: '交易記錄不存在' });
+        }
+
+        db.prepare('DELETE FROM transactions WHERE id = ?').run(id);
+        res.json({ message: '已刪除', id: Number(id) });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+module.exports = router;

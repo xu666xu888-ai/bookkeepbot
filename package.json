@@ -1,0 +1,25 @@
+{
+  "name": "bookkeeping",
+  "version": "1.0.0",
+  "description": "個人記帳 WebApp + Telegram Bot",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "concurrently \"node server/server.js\" \"cd client && npm run dev\"",
+    "server": "node server/server.js",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "NODE_ENV=production node server/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "otplib": "^12.0.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
