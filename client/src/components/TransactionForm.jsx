@@ -219,16 +219,16 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                                 type="button"
                                 onClick={() => update('isIncome', false)}
                                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${!form.isIncome
-                                        ? 'bg-expense text-white shadow-sm'
-                                        : 'text-text-dim'
+                                    ? 'bg-expense text-white shadow-sm'
+                                    : 'text-text-dim'
                                     }`}
                             >支出</button>
                             <button
                                 type="button"
                                 onClick={() => update('isIncome', true)}
                                 className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${form.isIncome
-                                        ? 'bg-income text-white shadow-sm'
-                                        : 'text-text-dim'
+                                    ? 'bg-income text-white shadow-sm'
+                                    : 'text-text-dim'
                                     }`}
                             >收入</button>
                         </div>
@@ -259,30 +259,38 @@ export default function TransactionForm({ accounts, categories, transaction, onS
 
                         {/* 帳戶 + 分類 */}
                         <div className="grid grid-cols-2 gap-3">
-                            <div>
+                            <div className="relative">
                                 <label className="text-xs text-text-dim mb-1.5 block">帳戶</label>
                                 <select
                                     value={form.account_id}
                                     onChange={e => update('account_id', e.target.value)}
                                     required
-                                    className="w-full bg-surface border border-border rounded-xl px-3 py-3 text-sm
-                                   focus:outline-none focus:border-accent transition-all"
+                                    style={{ backgroundColor: '#18181b', color: '#fff' }}
+                                    className="w-full border border-border rounded-xl px-3 py-3 text-sm
+                                   focus:outline-none focus:border-accent transition-all appearance-none"
                                 >
                                     <option value="">選擇</option>
                                     {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                 </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-dim">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                                </div>
                             </div>
-                            <div>
+                            <div className="relative">
                                 <label className="text-xs text-text-dim mb-1.5 block">分類</label>
                                 <select
                                     value={form.category_id}
                                     onChange={e => update('category_id', e.target.value)}
-                                    className="w-full bg-surface border border-border rounded-xl px-3 py-3 text-sm
-                                   focus:outline-none focus:border-accent transition-all"
+                                    style={{ backgroundColor: '#18181b', color: '#fff' }}
+                                    className="w-full border border-border rounded-xl px-3 py-3 text-sm
+                                   focus:outline-none focus:border-accent transition-all appearance-none"
                                 >
                                     <option value="">無</option>
                                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-dim">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
+                                </div>
                             </div>
                         </div>
 
@@ -336,8 +344,9 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                             >{transaction ? '更新' : '儲存'}</button>
                         </div>
                     </form>
-                )}
-            </div>
-        </div>
+                )
+                }
+            </div >
+        </div >
     );
 }

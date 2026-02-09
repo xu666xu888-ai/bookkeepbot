@@ -33,6 +33,7 @@ html {
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
+  color-scheme: dark;
   font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', BlinkMacSystemFont,
     'Inter', 'Segoe UI', system-ui, sans-serif;
   min-height: 100dvh;
