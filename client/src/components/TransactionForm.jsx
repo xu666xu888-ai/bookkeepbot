@@ -11,8 +11,8 @@ export default function TransactionForm({ accounts, categories, transaction, onS
         date: transaction?.date || todayStr,
         time: transaction?.time || timeStr,
         item: transaction?.item || '',
-        amount: transaction ? String(Math.abs(transaction.amount)) : '',
-        isIncome: transaction ? transaction.amount < 0 : false,
+        amount: transaction ? String(transaction.amount) : '',
+        type: transaction?.type || 'expense',
         description: transaction?.description || '',
         account_id: transaction?.account_id || (accounts[0]?.id || ''),
         category_id: transaction?.category_id || '',
@@ -34,12 +34,11 @@ export default function TransactionForm({ accounts, categories, transaction, onS
         e.preventDefault();
         if (!form.item || !form.amount || !form.account_id) return;
 
-        let amount = parseFloat(form.amount);
-        if (form.isIncome) amount = -amount;
+        let amount = Math.abs(parseFloat(form.amount));
 
         onSave({
             date: form.date, time: form.time, item: form.item,
-            amount, description: form.description,
+            amount, type: form.type, description: form.description,
             account_id: Number(form.account_id),
             category_id: form.category_id ? Number(form.category_id) : null,
         });
@@ -67,7 +66,7 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                 setForm({
                     item: tx.item,
                     amount: String(tx.amount),
-                    isIncome: tx.isIncome,
+                    type: tx.isIncome ? 'income' : 'expense',
                     account_id: tx.account_id || accounts[0]?.id || '',
                     category_id: tx.category_id || '',
                     date: tx.date || todayStr,
@@ -89,13 +88,13 @@ export default function TransactionForm({ accounts, categories, transaction, onS
     const handleBatchSave = async () => {
         if (!aiResults) return;
         for (const tx of aiResults) {
-            let amount = tx.amount;
-            if (tx.isIncome) amount = -amount;
+            let amount = Math.abs(tx.amount);
             await onSave({
                 date: tx.date || todayStr,
                 time: tx.time || timeStr,
                 item: tx.item,
                 amount,
+                type: tx.isIncome ? 'income' : 'expense',
                 description: tx.description || '',
                 account_id: Number(tx.account_id || accounts[0]?.id),
                 category_id: tx.category_id ? Number(tx.category_id) : null,
@@ -185,7 +184,7 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                                             </p>
                                         </div>
                                         <p className={`text-sm font-semibold tabular-nums ${tx.isIncome ? 'text-income' : 'text-expense'}`}>
-                                            {tx.isIncome ? '+' : '-'}${tx.amount.toLocaleString()}
+                                            {tx.isIncome ? '+' : '-'}${Math.abs(tx.amount).toLocaleString()}
                                         </p>
                                     </div>
                                 ))}
@@ -222,16 +221,16 @@ export default function TransactionForm({ accounts, categories, transaction, onS
                         <div className="flex rounded-xl overflow-hidden bg-surface p-1 gap-1">
                             <button
                                 type="button"
-                                onClick={() => update('isIncome', false)}
-                                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${!form.isIncome
+                                onClick={() => update('type', 'expense')}
+                                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${form.type === 'expense'
                                     ? 'bg-expense text-white shadow-sm'
                                     : 'text-text-dim'
                                     }`}
                             >支出</button>
                             <button
                                 type="button"
-                                onClick={() => update('isIncome', true)}
-                                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${form.isIncome
+                                onClick={() => update('type', 'income')}
+                                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${form.type === 'income'
                                     ? 'bg-income text-white shadow-sm'
                                     : 'text-text-dim'
                                     }`}

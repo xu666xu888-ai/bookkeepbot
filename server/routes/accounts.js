@@ -15,8 +15,9 @@ router.get('/', (req, res) => {
         const accounts = db.prepare(`
       SELECT
         a.id, a.name, a.created_at,
-        COALESCE(SUM(t.amount), 0) as total_spent,
-        -COALESCE(SUM(t.amount), 0) as balance
+        COALESCE(SUM(CASE WHEN t.type != 'income' THEN t.amount ELSE 0 END), 0) as total_spent,
+        COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) -
+        COALESCE(SUM(CASE WHEN t.type != 'income' THEN t.amount ELSE 0 END), 0) as balance
       FROM accounts a
       LEFT JOIN transactions t ON a.id = t.account_id
       GROUP BY a.id

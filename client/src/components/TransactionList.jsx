@@ -53,9 +53,9 @@ export default function TransactionList({ transactions, total, onEdit, onDelete 
                                 </div>
 
                                 {/* 右側金額 */}
-                                <p className={`font-semibold text-sm tabular-nums flex-shrink-0 ${tx.amount < 0 ? 'text-income' : 'text-expense'
+                                <p className={`font-semibold text-sm tabular-nums flex-shrink-0 ${tx.type === 'income' ? 'text-income' : 'text-expense'
                                     }`}>
-                                    {tx.amount < 0 ? '+' : '-'}${Math.abs(tx.amount).toLocaleString()}
+                                    {tx.type === 'income' ? '+' : '-'}${Math.abs(tx.amount).toLocaleString()}
                                 </p>
                             </div>
                         ))}
@@ -80,8 +80,8 @@ function formatDate(dateStr) {
 }
 
 function formatDayTotal(txs) {
-    const income = txs.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-    const expense = txs.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+    const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
+    const expense = txs.filter(t => t.type !== 'income').reduce((s, t) => s + Math.abs(t.amount), 0);
 
     const parts = [];
     if (expense > 0) parts.push(`-$${expense.toLocaleString()}`);

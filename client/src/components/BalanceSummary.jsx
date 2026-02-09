@@ -1,20 +1,20 @@
 export default function BalanceSummary({ accounts, transactions = [] }) {
     const totalBalance = accounts.reduce((sum, a) => sum + (a.balance || 0), 0);
 
-    // 從交易計算收入/支出（amount < 0 為收入，> 0 為支出）
+    // 從交易計算收入/支出（type 欄位區分）
     const totalIncome = transactions
-        .filter(t => t.amount < 0)
+        .filter(t => t.type === 'income')
         .reduce((s, t) => s + Math.abs(t.amount), 0);
     const totalExpense = transactions
-        .filter(t => t.amount > 0)
-        .reduce((s, t) => s + t.amount, 0);
+        .filter(t => t.type !== 'income')
+        .reduce((s, t) => s + Math.abs(t.amount), 0);
 
     // 各帳戶的收入/支出
     const accountStats = {};
     transactions.forEach(t => {
         if (!accountStats[t.account_id]) accountStats[t.account_id] = { income: 0, expense: 0 };
-        if (t.amount < 0) accountStats[t.account_id].income += Math.abs(t.amount);
-        else accountStats[t.account_id].expense += t.amount;
+        if (t.type === 'income') accountStats[t.account_id].income += Math.abs(t.amount);
+        else accountStats[t.account_id].expense += Math.abs(t.amount);
     });
 
     return (

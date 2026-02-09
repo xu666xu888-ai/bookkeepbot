@@ -37,6 +37,7 @@ db.exec(`
     time TEXT NOT NULL,
     item TEXT NOT NULL,
     amount REAL NOT NULL,
+    type TEXT NOT NULL DEFAULT 'expense',
     description TEXT DEFAULT '',
     account_id INTEGER NOT NULL,
     category_id INTEGER,
@@ -51,5 +52,17 @@ db.exec(`
     authorized_at TEXT
   );
 `);
+
+// 自動遷移：為舊表新增 type 欄位（若不存在）
+try {
+  db.prepare("SELECT type FROM transactions LIMIT 1").get();
+} catch (e) {
+  // type 欄位不存在，執行遷移
+  console.log('🔄 遷移中：新增 type 欄位...');
+  db.exec("ALTER TABLE transactions ADD COLUMN type TEXT NOT NULL DEFAULT 'expense'");
+  // 將負數金額的記錄標記為 income 並取絕對值
+  db.exec("UPDATE transactions SET type = 'income', amount = ABS(amount) WHERE amount < 0");
+  console.log('✅ 遷移完成：type 欄位已新增，金額已正規化');
+}
 
 module.exports = db;

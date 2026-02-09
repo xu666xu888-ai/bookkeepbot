@@ -80,20 +80,21 @@ router.get('/', (req, res) => {
  */
 router.post('/', (req, res) => {
     try {
-        const { date, time, item, amount, description, account_id, category_id } = req.body;
+        const { date, time, item, amount, type, description, account_id, category_id } = req.body;
 
         if (!date || !time || !item || amount === undefined || !account_id) {
             return res.status(400).json({ error: '缺少必要欄位：date, time, item, amount, account_id' });
         }
 
         const stmt = db.prepare(`
-      INSERT INTO transactions (date, time, item, amount, description, account_id, category_id)
-      VALUES (@date, @time, @item, @amount, @description, @account_id, @category_id)
+      INSERT INTO transactions (date, time, item, amount, type, description, account_id, category_id)
+      VALUES (@date, @time, @item, @amount, @type, @description, @account_id, @category_id)
     `);
 
         const result = stmt.run({
             date, time, item,
-            amount: Number(amount),
+            amount: Math.abs(Number(amount)),
+            type: type || 'expense',
             description: description || '',
             account_id: Number(account_id),
             category_id: category_id ? Number(category_id) : null
@@ -120,7 +121,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
     try {
         const { id } = req.params;
-        const { date, time, item, amount, description, account_id, category_id } = req.body;
+        const { date, time, item, amount, type, description, account_id, category_id } = req.body;
 
         const existing = db.prepare('SELECT * FROM transactions WHERE id = ?').get(id);
         if (!existing) {
@@ -129,7 +130,7 @@ router.put('/:id', (req, res) => {
 
         const stmt = db.prepare(`
       UPDATE transactions SET
-        date = @date, time = @time, item = @item, amount = @amount,
+        date = @date, time = @time, item = @item, amount = @amount, type = @type,
         description = @description, account_id = @account_id, category_id = @category_id
       WHERE id = @id
     `);
@@ -139,7 +140,8 @@ router.put('/:id', (req, res) => {
             date: date || existing.date,
             time: time || existing.time,
             item: item || existing.item,
-            amount: amount !== undefined ? Number(amount) : existing.amount,
+            amount: amount !== undefined ? Math.abs(Number(amount)) : existing.amount,
+            type: type || existing.type || 'expense',
             description: description !== undefined ? description : existing.description,
             account_id: account_id ? Number(account_id) : existing.account_id,
             category_id: category_id !== undefined ? (category_id ? Number(category_id) : null) : existing.category_id

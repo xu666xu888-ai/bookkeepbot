@@ -63,7 +63,7 @@ async function syncToSheets() {
 
         // 查詢所有交易（含帳戶、分類名稱）
         const rows = db.prepare(`
-            SELECT t.id, t.date, t.time, t.item, t.amount,
+            SELECT t.id, t.date, t.time, t.item, t.amount, t.type,
                    a.name as account_name,
                    c.name as category_name,
                    t.description, t.created_at
@@ -79,11 +79,11 @@ async function syncToSheets() {
             return;
         }
 
-        // 準備寫入資料（DB 中 amount < 0 為收入, > 0 為支出）
+        // 準備寫入資料（使用 type 欄位區分收入/支出）
         const header = ['ID', '日期', '時間', '品項', '類型', '金額', '帳戶', '分類', '備註', '建立時間'];
         const data = rows.map(r => [
             r.id, r.date, r.time, r.item,
-            r.amount < 0 ? '收入' : '支出',
+            r.type === 'income' ? '收入' : '支出',
             Math.abs(r.amount),
             r.account_name || '', r.category_name || '',
             r.description || '', r.created_at || ''

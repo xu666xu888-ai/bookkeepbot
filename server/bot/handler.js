@@ -96,20 +96,17 @@ function parseExpenseMessage(text) {
     if (parts.length < 3) return null;
 
     let item = parts[0];
-    let isIncome = false;
+    let type = 'expense';
 
     // 收入：+品項 或 品項前有 +
     if (item.startsWith('+')) {
-        isIncome = true;
+        type = 'income';
         item = item.substring(1);
     }
 
     const amountStr = parts[1];
-    let amount = parseFloat(amountStr);
+    let amount = Math.abs(parseFloat(amountStr));
     if (isNaN(amount)) return null;
-
-    // 收入存負數
-    if (isIncome) amount = -amount;
 
     const accountName = parts[2];
     const categoryName = parts.length >= 4 ? parts[3] : null;
@@ -129,17 +126,17 @@ function parseExpenseMessage(text) {
         }
     }
 
-    return { item, amount, account, category };
+    return { item, amount, type, account, category };
 }
 
 /**
  * 格式化交易為文字
  */
 function formatTransaction(tx) {
-    const type = tx.amount < 0 ? '💰 收入' : '💸 支出';
+    const typeLabel = tx.type === 'income' ? '💰 收入' : '💸 支出';
     const absAmount = Math.abs(tx.amount);
     const cat = tx.category_name ? ` | 📂 ${tx.category_name}` : '';
-    return `${type}: <b>${tx.item}</b>\n💵 $${absAmount} | 🏦 ${tx.account_name}${cat}\n📅 ${tx.date} ${tx.time}`;
+    return `${typeLabel}: <b>${tx.item}</b>\n💵 $${absAmount.toLocaleString()} | 🏦 ${tx.account_name}${cat}\n📅 ${tx.date} ${tx.time}`;
 }
 
 /**
@@ -185,9 +182,9 @@ async function handleTextMessage(chatId, text) {
     const time = now.toTimeString().split(' ')[0].slice(0, 5);
 
     const result = db.prepare(`
-    INSERT INTO transactions (date, time, item, amount, description, account_id, category_id)
-    VALUES (?, ?, ?, ?, '', ?, ?)
-  `).run(date, time, parsed.item, parsed.amount, parsed.account.id, parsed.category ? parsed.category.id : null);
+    INSERT INTO transactions (date, time, item, amount, type, description, account_id, category_id)
+    VALUES (?, ?, ?, ?, ?, '', ?, ?)
+  `).run(date, time, parsed.item, parsed.amount, parsed.type, parsed.account.id, parsed.category ? parsed.category.id : null);
 
     const tx = db.prepare(`
     SELECT t.*, a.name as account_name, c.name as category_name
@@ -270,7 +267,8 @@ async function handleCommand(chatId, text) {
         case '/accounts': {
             const accounts = db.prepare(`
         SELECT a.name,
-          -COALESCE(SUM(t.amount), 0) as balance
+          COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) -
+          COALESCE(SUM(CASE WHEN t.type != 'income' THEN t.amount ELSE 0 END), 0) as balance
         FROM accounts a
         LEFT JOIN transactions t ON a.id = t.account_id
         GROUP BY a.id
@@ -445,13 +443,15 @@ async function handleEditReply(chatId, text) {
                 db.prepare('UPDATE transactions SET item = ? WHERE id = ?').run(text, txId);
                 break;
             case 'amount': {
-                let amt = parseFloat(text);
+                let amt = Math.abs(parseFloat(text));
                 if (isNaN(amt)) {
                     await sendMessage(chatId, '❌ 金額格式錯誤，請輸入數字');
                     return true;
                 }
-                if (text.startsWith('+')) amt = -Math.abs(amt); // 收入
-                db.prepare('UPDATE transactions SET amount = ? WHERE id = ?').run(amt, txId);
+                const newType = text.startsWith('+') ? 'income' : undefined;
+                db.prepare('UPDATE transactions SET amount = ?' + (newType ? ', type = ?' : '') + ' WHERE id = ?').run(
+                    ...(newType ? [amt, newType, txId] : [amt, txId])
+                );
                 break;
             }
             case 'account': {
