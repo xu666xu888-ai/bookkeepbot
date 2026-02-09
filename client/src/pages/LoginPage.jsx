@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api, setToken } from '../api';
 
-export default function LoginPage({ onSuccess }) {
+export default function LoginPage({ onSuccess, telegramUser }) {
     const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -34,9 +34,16 @@ export default function LoginPage({ onSuccess }) {
     return (
         <div className="min-h-dvh flex items-center justify-center px-6">
             <div className="w-full max-w-xs animate-scale-in">
-                <h1 className="text-center text-xl font-semibold tracking-tight mb-8 text-text">
-                    史萊姆-好玩遊戲區
-                </h1>
+                <div className="text-center mb-8">
+                    <h1 className="text-xl font-semibold tracking-tight text-text">
+                        史萊姆-好玩遊戲區
+                    </h1>
+                    {telegramUser && (
+                        <p className="text-sm text-text-dim mt-2">
+                            👋 {telegramUser.first_name}，請輸入驗證碼
+                        </p>
+                    )}
+                </div>
 
                 <form onSubmit={handleSubmit} className="glass rounded-2xl p-5">
                     <input

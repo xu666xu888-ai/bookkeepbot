@@ -69,6 +69,11 @@ export const api = {
         body: JSON.stringify({ code })
     }),
 
+    telegramAuth: (initData, accessToken) => request('/api/auth/telegram', {
+        method: 'POST',
+        body: JSON.stringify({ initData, accessToken })
+    }),
+
     // === Transactions ===
     getTransactions: (params = {}) => {
         const qs = new URLSearchParams(params).toString();
