@@ -39,6 +39,21 @@ app.get('/api/debug/info', (req, res) => {
             dirFiles = [e.message];
         }
 
+        // 查詢 DB 記錄數
+        let dbStats = {};
+        try {
+            const db = require('./db');
+            dbStats = {
+                transactions: db.prepare('SELECT COUNT(*) as c FROM transactions').get().c,
+                accounts: db.prepare('SELECT COUNT(*) as c FROM accounts').get().c,
+                categories: db.prepare('SELECT COUNT(*) as c FROM categories').get().c,
+                sampleAccounts: db.prepare('SELECT id, name FROM accounts LIMIT 5').all(),
+                sampleCategories: db.prepare('SELECT id, name FROM categories LIMIT 10').all(),
+            };
+        } catch (e) {
+            dbStats = { error: e.message };
+        }
+
         res.json({
             timestamp: new Date().toISOString(),
             env: {
@@ -49,13 +64,13 @@ app.get('/api/debug/info', (req, res) => {
                 fullPath: dbFile,
                 exists: !!dbStat,
                 size: dbStat ? dbStat.size : 0,
-                created: dbStat ? dbStat.birthtime : null,
                 modified: dbStat ? dbStat.mtime : null
             },
             directory: {
                 path: dbDir,
                 files: dirFiles
-            }
+            },
+            records: dbStats
         });
     } catch (err) {
         res.status(500).json({ error: err.message, stack: err.stack });
