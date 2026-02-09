@@ -1,6 +1,15 @@
-# 史萊姆-好玩遊戲區
+# 史萊姆-好玩遊戲區 (AI Bookkeeping)
 
-個人專用記帳系統，結合 Web 介面與 Telegram Bot，使用 TOTP 驗證確保安全。
+個人專用記帳系統，結合 **React 現代化介面** 與 **Google Gemini AI 智能填入** 功能。
+
+![AI Smart Fill](https://i.imgur.com/example.png)
+
+## 核心功能
+
+- **AI 智能填入**：輸入「早餐 50」或「房租 28000 電費 2000」，自動解析品項、金額、帳戶與分類。
+- **多筆批次處理**：支援一次輸入多筆交易，預覽後一鍵儲存。
+- **現代化 UI**：採用深色玻璃擬態 (Glassmorphism) 設計，手機操作流暢。
+- **安全驗證**：TOTP (Google Authenticator) 雙因素驗證 + JWT 滑動視窗。
 
 ## 快速開始 (本地開發)
 
@@ -11,7 +20,7 @@ cd client && npm install && cd ..
 
 # 2. 設定環境變數
 cp .env.example .env
-# 編輯 .env，填入你的 TOTP Secret 和 Telegram Bot Token
+# 編輯 .env，填入 ADMIN_TOTP_SECRET 和 GEMINI_API_KEY
 
 # 3. 生成 TOTP Secret（加入 Google Authenticator）
 node -e "const { authenticator } = require('otplib'); const s = authenticator.generateSecret(); console.log('Secret:', s); console.log('URI:', authenticator.keyuri('admin', 'Bookkeeping', s))"
@@ -26,56 +35,56 @@ npm run dev
 |------|------|------|
 | `ADMIN_TOTP_SECRET` | TOTP Secret (Google Authenticator) | `JBSWY3DPEHPK3PXP` |
 | `JWT_SECRET` | JWT 簽名密鑰 | 隨機長字串 |
-| `TELEGRAM_TOKEN` | Telegram Bot Token | `123456:ABC...` |
-| `BOT_ACCESS_TOKEN` | Bot 8 位數存取 Token | `12345678` |
+| `GEMINI_API_KEY` | Google Gemini API Key | `AIzaSy...` |
 | `DB_PATH` | SQLite 資料庫目錄 | `./data` 或 `/mnt/data` |
-| `PORT` | 伺服器埠 | `3000` |
+| `PORT` | 伺服器埠 | `3000` (Cloud Run 會自動注入) |
 
-## Cloud Run 部署
+## Cloud Run 部署指引
 
-### 1. 建立 GCS Bucket
+本專案支援 **Cloud Run (Gen2)** 部署，並使用 **GCS FUSE** 掛載 SQLite 資料庫以實現持久化。
+
+### 1. 準備 GCS Bucket
+
+建立一個儲存桶用來放 SQLite 資料庫檔案：
+
 ```bash
-gsutil mb -l asia-east1 gs://YOUR_BUCKET_NAME
-```
-
-### 2. Build 並推送 Docker Image
-```bash
-# 設定專案
-export PROJECT_ID=your-gcp-project-id
+export PROJECT_ID=你的專案ID
 export REGION=asia-east1
+export BUCKET_NAME=bookkeeping-db-${PROJECT_ID}
 
-# Build & Push
-gcloud builds submit --tag ${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bookkeeping
+gsutil mb -l ${REGION} gs://${BUCKET_NAME}
 ```
 
-### 3. 部署到 Cloud Run (含 GCS FUSE 掛載)
+### 2. 部署到 Cloud Run
+
+直接使用源碼部署（Source Deploy）：
+
 ```bash
 gcloud run deploy bookkeeping \
-  --image ${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/bookkeeping \
+  --source . \
   --region ${REGION} \
   --platform managed \
   --allow-unauthenticated \
-  --port 8080 \
-  --memory 512Mi \
-  --cpu 1 \
-  --min-instances 0 \
-  --max-instances 1 \
   --execution-environment gen2 \
-  --set-env-vars "ADMIN_TOTP_SECRET=YOUR_SECRET,JWT_SECRET=YOUR_JWT_SECRET,TELEGRAM_TOKEN=YOUR_BOT_TOKEN,BOT_ACCESS_TOKEN=YOUR_8_DIGIT_TOKEN,DB_PATH=/mnt/data" \
-  --add-volume name=gcs-volume,type=cloud-storage,bucket=YOUR_BUCKET_NAME \
-  --add-volume-mount volume=gcs-volume,mount-path=/mnt/data
+  --set-env-vars "ADMIN_TOTP_SECRET=填入你的Secret,JWT_SECRET=填入隨機字串,GEMINI_API_KEY=填入GeminiKey,DB_PATH=/mnt/data" \
+  --add-volume name=gcs-data,type=cloud-storage,bucket=${BUCKET_NAME} \
+  --add-volume-mount volume=gcs-data,mount-path=/mnt/data
 ```
 
-### 4. 設定 Telegram Webhook
-```bash
-export CLOUD_RUN_URL=$(gcloud run services describe bookkeeping --region ${REGION} --format='value(status.url)')
+> **注意**：
+> - `source .` 會自動識別 `Dockerfile` 並構建。
+> - `execution-environment gen2` 是必須的，因為需要掛載 GCS FUSE。
+> - `DB_PATH` 必須設為 `/mnt/data`，這是 GCS 掛載的路徑。
 
-curl -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setWebhook?url=${CLOUD_RUN_URL}/api/telegram/webhook"
-```
+### 3. (可選) 設定自定義網域
+
+在 Cloud Run 主控台的「整合」或「管理自定義網域」中設定你的網域。
+
+---
 
 ## 技術棧
 
-- **前端:** React 19 + Vite 6 + Tailwind CSS 4
-- **後端:** Express 4 + better-sqlite3
-- **認證:** TOTP (otplib) + JWT (15 分鐘滑動視窗)
-- **部署:** Google Cloud Run Gen2 + GCS FUSE
+- **前端**: React 19 + Vite 6 + Tailwind CSS 4
+- **後端**: Express 4 + better-sqlite3
+- **AI**: Google Gemini API (gemini-2.0-flash)
+- **部署**: Google Cloud Run Gen2 + GCS FUSE

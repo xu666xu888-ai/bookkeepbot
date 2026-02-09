@@ -33,31 +33,44 @@ router.post('/parse', authMiddleware, async (req, res) => {
         const today = new Date().toISOString().split('T')[0];
         const now = new Date().toTimeString().split(' ')[0].slice(0, 5);
 
-        const systemPrompt = `你是一個記帳助手。解析用戶的自然語言輸入，轉換為結構化的交易資料。
+        const systemPrompt = `你是一個記帳助手。請將用戶輸入解析為 JSON 格式。
 
-## 規則
-1. 支出的 amount 為正數，收入的 amount 為負數
-2. 如果用戶沒提到日期，使用今天 ${today}
-3. 如果用戶沒提到時間，使用 ${now}
-4. 分類必須從以下清單中選擇最合適的：${categories.map(c => c.name).join('、')}
-5. 帳戶必須從以下清單中選擇：${accounts.map(a => a.name).join('、')}。如果用戶沒指定帳戶，使用第一個帳戶「${accounts[0]?.name || ''}」
-6. 如果一段文字包含多筆交易，拆分成多筆
-7. 金額如果寫「萬」就乘以 10000，如「3.5萬」= 35000
-8. 默認為支出，除非用戶明確說到「收入」、「入帳」、「+」等字眼
+## 當前資訊
+- 今天日期：${today} (${new Date().toLocaleDateString('zh-TW', { weekday: 'long' })})
+- 現在時間：${now}
+- 可用帳戶：${accounts.map(a => a.name).join('、')} (預設：${accounts[0]?.name})
+- 可用分類：${categories.map(c => c.name).join('、')}
 
-## 輸出格式
-嚴格回傳 JSON，不要有任何其他文字：
+## 解析規則
+1. **金額**：
+   - 支出為正數，收入為負數（除非用戶明確指定「+」或「收入」）。
+   - 支援「萬」(10000)、「千」(1000) 等單位。
+   - 運算：支援簡單運算如「午餐100+飲料50」可解析為 150，或拆分為兩筆。建議拆分。
+
+2. **日期與時間**：
+   - 支援「昨天」、「前天」、「上週五」等相對日期，請根據今日 (${today}) 推算準確的 YYYY-MM-DD。
+   - 若未指定，預設為今日。
+
+3. **分類與帳戶匹配**：
+   - 根據關鍵字自動匹配最接近的分類（例如「拿鐵」->「飲食」、「加油」->「交通」）。
+   - 若無法匹配，可匹配最接近的現有分類，或設為空字串讓前端處理。
+   - 帳戶必須從「可用帳戶」清單中選擇。
+
+4. **多筆交易**：
+   - 若輸入包含多個不同事件（以空格、換行或逗號分隔），請拆分為多筆交易物件。
+
+## 輸出格式 (JSON Only)
 {
   "transactions": [
     {
-      "item": "品項名稱",
-      "amount": 50,
+      "item": "品項",
+      "amount": 100,
       "isIncome": false,
-      "category": "分類名稱",
-      "account": "帳戶名稱",
-      "date": "YYYY-MM-DD",
-      "time": "HH:mm",
-      "description": ""
+      "category": "飲食",
+      "account": "現金",
+      "date": "2023-01-01",
+      "time": "12:00",
+      "description": "備註"
     }
   ]
 }`;
@@ -82,30 +95,6 @@ router.post('/parse', authMiddleware, async (req, res) => {
         if (!response.ok) {
             const err = await response.text();
             console.error('Gemini API error:', err);
-
-            // === Mock Fallback (當配額超限時讓用戶測試 UI) ===
-            if (response.status === 429) {
-                console.log('⚠️ 配額超限，使用 Mock Data');
-                const mockData = [
-                    { item: text.split(' ')[0] || '測試品項', amount: parseFloat(text.match(/\d+/)?.[0]) || 100, isIncome: false, category: '雜支', account: accounts[0]?.name, date: today, time: now, description: '(API 配額超限，這是模擬數據)' }
-                ];
-
-                // 嘗試解析多筆
-                if (text.includes(' ')) {
-                    // 簡單規則：如果包含多個數字，嘗試拆分
-                    const parts = text.split(/(\s+)/).filter(p => p.trim());
-                    // 這只是一個非常粗略的 mock，只為了展示 UI
-                }
-
-                return res.json({
-                    transactions: mockData.map(tx => ({
-                        ...tx,
-                        account_id: accounts.find(a => a.name === tx.account)?.id || accounts[0]?.id,
-                        category_id: categories.find(c => c.name === tx.category)?.id
-                    }))
-                });
-            }
-
             return res.status(502).json({ error: 'AI 服務暫時無法使用' });
         }
 
