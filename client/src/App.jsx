@@ -35,19 +35,13 @@ export default function App() {
             'platform:', tg?.platform
         );
 
-        // 完全不在 Telegram 中
-        if (!tg || (!hasInitData && !hasUnsafeUser && !hasPlatform)) {
-            setTelegramStatus('blocked');
-            return;
-        }
-
-        // Telegram 環境初始化
-        tg.ready();
-        tg.expand();
-
-        // 設定 Telegram 主題色
-        if (tg.themeParams) {
-            document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#0a0a0a');
+        // Telegram 環境初始化（如果有）
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            if (tg.themeParams) {
+                document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#0a0a0a');
+            }
         }
 
         // 如果已經有 JWT 且有效，直接進入
@@ -57,7 +51,7 @@ export default function App() {
             return;
         }
 
-        // 有 initData → 走正式驗證流程
+        // 嘗試 Telegram 驗證，但失敗不封鎖，而是讓用戶手動登入
         if (hasInitData) {
             try {
                 const result = await api.telegramAuth(tg.initData);
@@ -71,45 +65,47 @@ export default function App() {
                 }
             } catch (err) {
                 console.error('[TG] auth error:', err.message);
-                setError(err.message);
-                setTelegramStatus('blocked');
+                // 驗證失敗也不封鎖，轉為需要 TOTP 登入（或 Token）
+                setTelegramStatus('need_totp');
             }
             return;
         }
 
-        // 在 Telegram 中但沒有 initData（可能是 Menu Button 配置問題）
-        // 直接用 unsafeUser 做初步識別，跳到 need_token 讓用戶輸入存取碼
         if (hasUnsafeUser) {
             setTelegramUser({
                 id: tg.initDataUnsafe.user.id,
                 first_name: tg.initDataUnsafe.user.first_name
             });
+            // 讓用戶輸入 token 或直接登入
             setTelegramStatus('need_token');
             return;
         }
 
-        // 在 Telegram 中但完全沒有用戶資訊 → 直接進入 need_token
-        setTelegramStatus('need_token');
+        // 完全沒有 Telegram 資訊，或是瀏覽器環境 -> 允許進入登入頁面
+        setTelegramStatus('need_totp');
     };
 
     const handleAuthorize = async (accessToken) => {
         const tg = window.Telegram?.WebApp;
         const initData = tg?.initData || '';
 
-        if (initData) {
-            // 有 initData → 正式驗證
-            const result = await api.telegramAuth(initData, accessToken);
-            setTelegramUser(result.user);
-            if (result.status === 'need_totp') {
-                setTelegramStatus('need_totp');
+        try {
+            if (initData) {
+                const result = await api.telegramAuth(initData, accessToken);
+                setTelegramUser(result.user);
+                if (result.status === 'need_totp') {
+                    setTelegramStatus('need_totp');
+                }
+            } else {
+                const result = await api.telegramAuth('', accessToken);
+                if (result.user) setTelegramUser(result.user);
+                if (result.status === 'need_totp') {
+                    setTelegramStatus('need_totp');
+                }
             }
-        } else {
-            // 無 initData（fallback）→ 直接用 token 驗證
-            const result = await api.telegramAuth('', accessToken);
-            if (result.user) setTelegramUser(result.user);
-            if (result.status === 'need_totp') {
-                setTelegramStatus('need_totp');
-            }
+        } catch (e) {
+            console.error(e);
+            alert('授權失敗: ' + e.message);
         }
     };
 
@@ -123,15 +119,20 @@ export default function App() {
         return <Dashboard />;
     }
 
-    // 需要 TOTP 登入
-    if (telegramStatus === 'need_totp') {
+    // 如果已登入但在檢查中（通常 isLoggedIn 會先攔截），這裡兜底
+    if (loggedIn) {
+        return <Dashboard />;
+    }
+
+    // 需要 TOTP 登入 (預設狀態)
+    if (telegramStatus === 'need_totp' || telegramStatus === 'blocked' || telegramStatus === 'checking') {
         return <LoginPage
             onSuccess={handleLoginSuccess}
             telegramUser={telegramUser}
         />;
     }
 
-    // 其他狀態（blocked / need_token / checking）
+    // 其他狀態（need_token）
     return <TelegramGate
         status={telegramStatus}
         user={telegramUser}

@@ -8,23 +8,9 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 非 Telegram 環境 — Nginx 風格 404
+    // 非 Telegram 環境 — (已移除偽裝，App.jsx 會直接導向登入頁)
     if (status === 'blocked') {
-        document.title = '404 Not Found';
-        return (
-            <div style={{
-                position: 'fixed', inset: 0,
-                background: '#fff', color: '#000',
-                fontFamily: 'Tahoma, Verdana, Arial, sans-serif',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                textAlign: 'center'
-            }}>
-                <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>404 Not Found</h1>
-                <hr style={{ width: '300px', border: 'none', borderTop: '1px solid #ccc', margin: '8px 0' }} />
-                <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>nginx</p>
-            </div>
-        );
+        return null;
     }
 
     // 需要輸入 BOT_ACCESS_TOKEN
