@@ -12,8 +12,10 @@ if (!fs.existsSync(DB_DIR)) {
 
 const db = new Database(DB_FILE, {});
 
-// 啟用 WAL 模式（提升並發讀取效能）
-db.pragma('journal_mode = WAL');
+console.log(`📂 Connecting to database at: ${DB_FILE}`);
+
+// 禁用 WAL 模式 (GCS FUSE 不支援 WAL/SHM 共享記憶體映射)
+db.pragma('journal_mode = DELETE');
 db.pragma('foreign_keys = ON');
 
 // 建表
