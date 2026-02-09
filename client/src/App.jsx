@@ -24,6 +24,8 @@ export default function App() {
     const checkTelegram = async () => {
         const tg = window.Telegram?.WebApp;
 
+        console.log('[TG] WebApp:', !!tg, 'initData:', tg?.initData?.substring(0, 30));
+
         // 非 Telegram 環境
         if (!tg || !tg.initData) {
             setTelegramStatus('blocked');
@@ -49,6 +51,7 @@ export default function App() {
         // 驗證 initData
         try {
             const result = await api.telegramAuth(tg.initData);
+            console.log('[TG] auth result:', result.status);
             setTelegramUser(result.user);
 
             if (result.status === 'need_token') {
@@ -57,6 +60,7 @@ export default function App() {
                 setTelegramStatus('need_totp');
             }
         } catch (err) {
+            console.error('[TG] auth error:', err.message);
             setError(err.message);
             setTelegramStatus('blocked');
         }

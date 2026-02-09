@@ -8,14 +8,23 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 非 Telegram 環境 — 偽裝 404
+    // 非 Telegram 環境 — 完全替換為 Nginx 風格 404
     if (status === 'blocked') {
+        document.title = '404 Not Found';
+        document.body.innerHTML = '';
+        document.head.querySelectorAll('meta[name="description"], meta[name="theme-color"]').forEach(el => el.remove());
         return (
-            <div className="min-h-dvh flex items-center justify-center px-6" style={{ background: '#fff', color: '#000' }}>
-                <div className="text-center">
-                    <h1 style={{ fontSize: '72px', fontWeight: 'bold', margin: 0 }}>404</h1>
-                    <p style={{ color: '#666', marginTop: '8px' }}>Not Found</p>
-                </div>
+            <div style={{
+                position: 'fixed', inset: 0,
+                background: '#fff', color: '#000',
+                fontFamily: 'Tahoma, Verdana, Arial, sans-serif',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                textAlign: 'center'
+            }}>
+                <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>404 Not Found</h1>
+                <hr style={{ width: '300px', border: 'none', borderTop: '1px solid #ccc', margin: '8px 0' }} />
+                <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>nginx</p>
             </div>
         );
     }

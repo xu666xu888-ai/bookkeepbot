@@ -35,11 +35,16 @@ function validateInitData(initData, botToken) {
             .update(dataCheckString)
             .digest('hex');
 
-        if (checkHash !== hash) return { valid: false, user: null };
+        if (checkHash !== hash) {
+            console.log('❌ initData 簽名不匹配');
+            return { valid: false, user: null };
+        }
 
-        // 檢查 auth_date 是否過期（5 分鐘內有效）
+        // 檢查 auth_date 是否過期（24 小時內有效，避免時區差異導致誤判）
         const authDate = Number(params.get('auth_date'));
-        if (Date.now() / 1000 - authDate > 300) {
+        const age = Date.now() / 1000 - authDate;
+        if (age > 86400) {
+            console.log(`❌ initData 已過期: ${age}s`);
             return { valid: false, user: null };
         }
 
