@@ -24,10 +24,19 @@ export default function App() {
     const checkTelegram = async () => {
         const tg = window.Telegram?.WebApp;
 
-        console.log('[TG] WebApp:', !!tg, 'initData:', tg?.initData?.substring(0, 30));
+        // 多重訊號偵測 Telegram 環境
+        const hasInitData = tg && tg.initData && tg.initData.length > 0;
+        const hasUnsafeUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        const hasPlatform = tg && tg.platform && tg.platform !== 'unknown';
 
-        // 非 Telegram 環境
-        if (!tg || !tg.initData) {
+        console.log('[TG] SDK:', !!tg,
+            'initData:', hasInitData,
+            'unsafeUser:', !!hasUnsafeUser,
+            'platform:', tg?.platform
+        );
+
+        // 完全不在 Telegram 中（SDK 都沒有，或沒有任何 Telegram 訊號）
+        if (!tg || (!hasInitData && !hasUnsafeUser && !hasPlatform)) {
             setTelegramStatus('blocked');
             return;
         }
@@ -48,33 +57,59 @@ export default function App() {
             return;
         }
 
-        // 驗證 initData
-        try {
-            const result = await api.telegramAuth(tg.initData);
-            console.log('[TG] auth result:', result.status);
-            setTelegramUser(result.user);
+        // 有 initData → 走正式驗證流程
+        if (hasInitData) {
+            try {
+                const result = await api.telegramAuth(tg.initData);
+                console.log('[TG] auth result:', result.status);
+                setTelegramUser(result.user);
 
-            if (result.status === 'need_token') {
-                setTelegramStatus('need_token');
-            } else if (result.status === 'need_totp') {
-                setTelegramStatus('need_totp');
+                if (result.status === 'need_token') {
+                    setTelegramStatus('need_token');
+                } else if (result.status === 'need_totp') {
+                    setTelegramStatus('need_totp');
+                }
+            } catch (err) {
+                console.error('[TG] auth error:', err.message);
+                setError(err.message);
+                setTelegramStatus('blocked');
             }
-        } catch (err) {
-            console.error('[TG] auth error:', err.message);
-            setError(err.message);
-            setTelegramStatus('blocked');
+            return;
         }
+
+        // 在 Telegram 中但沒有 initData（可能是 Menu Button 配置問題）
+        // 直接用 unsafeUser 做初步識別，跳到 need_token 讓用戶輸入存取碼
+        if (hasUnsafeUser) {
+            setTelegramUser({
+                id: tg.initDataUnsafe.user.id,
+                first_name: tg.initDataUnsafe.user.first_name
+            });
+            setTelegramStatus('need_token');
+            return;
+        }
+
+        // 在 Telegram 中但完全沒有用戶資訊 → 直接進入 need_token
+        setTelegramStatus('need_token');
     };
 
     const handleAuthorize = async (accessToken) => {
         const tg = window.Telegram?.WebApp;
-        if (!tg) return;
+        const initData = tg?.initData || '';
 
-        const result = await api.telegramAuth(tg.initData, accessToken);
-        setTelegramUser(result.user);
-
-        if (result.status === 'need_totp') {
-            setTelegramStatus('need_totp');
+        if (initData) {
+            // 有 initData → 正式驗證
+            const result = await api.telegramAuth(initData, accessToken);
+            setTelegramUser(result.user);
+            if (result.status === 'need_totp') {
+                setTelegramStatus('need_totp');
+            }
+        } else {
+            // 無 initData（fallback）→ 直接用 token 驗證
+            const result = await api.telegramAuth('', accessToken);
+            if (result.user) setTelegramUser(result.user);
+            if (result.status === 'need_totp') {
+                setTelegramStatus('need_totp');
+            }
         }
     };
 

@@ -24,21 +24,40 @@ const BOT_ACCESS_TOKEN = process.env.BOT_ACCESS_TOKEN;
 router.post('/telegram', (req, res) => {
     const { initData, accessToken } = req.body;
 
-    if (!initData) {
-        return res.status(400).json({ error: '缺少 initData' });
-    }
-
     if (!TELEGRAM_TOKEN) {
         return res.status(500).json({ error: 'TELEGRAM_TOKEN 未設定' });
     }
 
-    // 1. 驗證 initData 簽名
-    const { valid, user } = validateInitData(initData, TELEGRAM_TOKEN);
-    if (!valid || !user) {
-        return res.status(403).json({ error: '無效的 Telegram 認證，請從 Telegram 開啟' });
+    let chatId = null;
+    let user = null;
+
+    // 有 initData → 完整 HMAC 驗證
+    if (initData && initData.length > 0) {
+        const result = validateInitData(initData, TELEGRAM_TOKEN);
+        if (!result.valid || !result.user) {
+            return res.status(403).json({ error: '無效的 Telegram 認證' });
+        }
+        chatId = String(result.user.id);
+        user = result.user;
     }
 
-    const chatId = String(user.id);
+    // 無 initData 但有 accessToken → fallback 驗證（僅允許授權操作）
+    if (!chatId && accessToken) {
+        if (!BOT_ACCESS_TOKEN || accessToken !== BOT_ACCESS_TOKEN) {
+            return res.status(401).json({ error: '存取碼錯誤' });
+        }
+        // 授權成功，跳到 TOTP
+        return res.json({
+            status: 'need_totp',
+            user: { id: 0, first_name: '用戶' }
+        });
+    }
+
+    // 既無 initData 也無 accessToken
+    if (!chatId) {
+        return res.status(400).json({ error: '缺少認證資訊' });
+    }
+
 
     // 2. 查詢用戶授權狀態
     let dbUser = db.prepare('SELECT * FROM bot_users WHERE chat_id = ?').get(chatId);
