@@ -1,6 +1,8 @@
 /**
  * Telegram initData HMAC-SHA256 驗證模組
  * 確保請求真的來自 Telegram Mini App
+ * 
+ * 相容 Bot API 8.0+（含 signature 欄位）
  */
 const crypto = require('crypto');
 
@@ -16,7 +18,9 @@ function validateInitData(initData, botToken) {
         const hash = params.get('hash');
         if (!hash) return { valid: false, user: null };
 
+        // 移除 hash 和 signature（Bot API 8.0+ 新增，不參與 HMAC 計算）
         params.delete('hash');
+        params.delete('signature');
 
         // 按字母排序組成 data-check-string
         const dataCheckString = [...params.entries()]
@@ -36,11 +40,14 @@ function validateInitData(initData, botToken) {
             .digest('hex');
 
         if (checkHash !== hash) {
-            console.log('❌ initData 簽名不匹配');
+            console.log('❌ initData HMAC 不匹配');
+            console.log('  expected:', hash);
+            console.log('  computed:', checkHash);
+            console.log('  dataCheckString:', dataCheckString.substring(0, 100));
             return { valid: false, user: null };
         }
 
-        // 檢查 auth_date 是否過期（24 小時內有效，避免時區差異導致誤判）
+        // 檢查 auth_date 是否過期（24 小時內有效）
         const authDate = Number(params.get('auth_date'));
         const age = Date.now() / 1000 - authDate;
         if (age > 86400) {
@@ -52,6 +59,7 @@ function validateInitData(initData, botToken) {
         const userStr = params.get('user');
         const user = userStr ? JSON.parse(userStr) : null;
 
+        console.log('✅ initData 驗證成功, user:', user?.first_name);
         return { valid: true, user };
     } catch (err) {
         console.error('validateInitData error:', err);

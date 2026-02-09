@@ -35,24 +35,8 @@ export default function App() {
             'platform:', tg?.platform
         );
 
-        // 完全不在 Telegram 中 → 顯示 debug 資訊（臨時）
+        // 完全不在 Telegram 中
         if (!tg || (!hasInitData && !hasUnsafeUser && !hasPlatform)) {
-            // 臨時 debug：在頁面顯示偵測值
-            const debugEl = document.createElement('pre');
-            debugEl.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:20px;background:#111;color:#0f0;font-size:12px;z-index:9999;white-space:pre-wrap;word-break:break-all';
-            debugEl.textContent = JSON.stringify({
-                hasTG: !!window.Telegram,
-                hasWebApp: !!tg,
-                initData: tg?.initData || '(empty)',
-                initDataUnsafe: tg?.initDataUnsafe || '(empty)',
-                platform: tg?.platform || '(unknown)',
-                version: tg?.version || '(none)',
-                colorScheme: tg?.colorScheme || '(none)',
-                hash: location.hash?.substring(0, 100) || '(no hash)',
-                hasTGProxy: !!window.TelegramWebviewProxy,
-                ua: navigator.userAgent
-            }, null, 2);
-            document.body.appendChild(debugEl);
             setTelegramStatus('blocked');
             return;
         }

@@ -8,33 +8,21 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 非 Telegram 環境 — 臨時 debug 頁面
+    // 非 Telegram 環境 — Nginx 風格 404
     if (status === 'blocked') {
-        const tg = window.Telegram?.WebApp;
-        const debugInfo = {
-            hasTG: !!window.Telegram,
-            hasWebApp: !!tg,
-            initData: tg?.initData?.substring(0, 50) || '(empty)',
-            initDataUnsafe: JSON.stringify(tg?.initDataUnsafe || {}),
-            platform: tg?.platform || '(none)',
-            version: tg?.version || '(none)',
-            colorScheme: tg?.colorScheme || '(none)',
-            hash: location.hash?.substring(0, 100) || '(no hash)',
-            hasTGProxy: !!window.TelegramWebviewProxy,
-            ua: navigator.userAgent?.substring(0, 80)
-        };
+        document.title = '404 Not Found';
         return (
             <div style={{
                 position: 'fixed', inset: 0,
-                background: '#111', color: '#0f0',
-                fontFamily: 'monospace', fontSize: '11px',
-                padding: '16px', overflow: 'auto',
-                whiteSpace: 'pre-wrap', wordBreak: 'break-all'
+                background: '#fff', color: '#000',
+                fontFamily: 'Tahoma, Verdana, Arial, sans-serif',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                textAlign: 'center'
             }}>
-                <div style={{ marginBottom: '12px', color: '#ff0', fontSize: '14px' }}>
-                    🔍 Telegram Debug Info
-                </div>
-                {JSON.stringify(debugInfo, null, 2)}
+                <h1 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>404 Not Found</h1>
+                <hr style={{ width: '300px', border: 'none', borderTop: '1px solid #ccc', margin: '8px 0' }} />
+                <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>nginx</p>
             </div>
         );
     }
