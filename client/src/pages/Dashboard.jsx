@@ -53,18 +53,14 @@ export default function Dashboard() {
             .finally(() => setLoading(false));
     }, []);
 
-    // 監聽交易刪除事件（從 TransactionForm 觸發）
-    useEffect(() => {
-        const handler = async (e) => {
-            try {
-                await api.deleteTransaction(e.detail);
-                fetchTransactions();
-                fetchAccounts();
-            } catch (err) { alert(err.message); }
-        };
-        window.addEventListener('delete-tx', handler);
-        return () => window.removeEventListener('delete-tx', handler);
-    }, [fetchTransactions, fetchAccounts]);
+    const handleDelete = async (id) => {
+        if (!confirm('確定要刪除這筆交易嗎？')) return;
+        try {
+            await api.deleteTransaction(id);
+            fetchTransactions();
+            fetchAccounts();
+        } catch (err) { alert(err.message); }
+    };
 
     const handleFilter = (f) => {
         setFilters(f);
@@ -86,14 +82,6 @@ export default function Dashboard() {
         } catch (err) { alert(err.message); }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('確定要刪除這筆交易嗎？')) return;
-        try {
-            await api.deleteTransaction(id);
-            fetchTransactions();
-            fetchAccounts();
-        } catch (err) { alert(err.message); }
-    };
 
     const handleEdit = (tx) => {
         setEditingTx(tx);
@@ -162,7 +150,6 @@ export default function Dashboard() {
                     transactions={transactions}
                     total={total}
                     onEdit={handleEdit}
-                    onDelete={handleDelete}
                 />
             </main>
 
@@ -187,7 +174,7 @@ export default function Dashboard() {
             {showCategories && (
                 <CategoryManager
                     categories={categories}
-                    onUpdate={fetchCategories}
+                    onUpdate={() => { fetchCategories(); fetchTransactions(); }}
                     onClose={() => setShowCategories(false)}
                 />
             )}
@@ -198,6 +185,7 @@ export default function Dashboard() {
                     categories={categories}
                     transaction={editingTx}
                     onSave={handleSave}
+                    onDelete={handleDelete}
                     onClose={() => { setShowForm(false); setEditingTx(null); }}
                 />
             )}

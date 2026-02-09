@@ -1,4 +1,4 @@
-export default function TransactionList({ transactions, total, onEdit, onDelete }) {
+export default function TransactionList({ transactions, total, onEdit }) {
     if (transactions.length === 0) {
         return (
             <div className="glass rounded-2xl p-10 text-center">

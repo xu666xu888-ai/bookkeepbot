@@ -1,6 +1,7 @@
 const db = require('../db');
 
-const BOT_TOKEN = process.env.BOT_ACCESS_TOKEN || '12345678';
+const BOT_TOKEN = process.env.BOT_ACCESS_TOKEN;
+if (!BOT_TOKEN) console.warn('⚠️ BOT_ACCESS_TOKEN 未設定，Bot 認證功能將無法使用');
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 
 /**
@@ -177,9 +178,10 @@ async function handleTextMessage(chatId, text) {
     }
 
     // 寫入交易
+    // F-04: 使用本地時區避免跨日錯誤
     const now = new Date();
-    const date = now.toISOString().split('T')[0];
-    const time = now.toTimeString().split(' ')[0].slice(0, 5);
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     const result = db.prepare(`
     INSERT INTO transactions (date, time, item, amount, type, description, account_id, category_id)

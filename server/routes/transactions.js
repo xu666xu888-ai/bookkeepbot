@@ -82,8 +82,22 @@ router.post('/', (req, res) => {
     try {
         const { date, time, item, amount, type, description, account_id, category_id } = req.body;
 
+        // F-03: 嚴格輸入校驗
         if (!date || !time || !item || amount === undefined || !account_id) {
             return res.status(400).json({ error: '缺少必要欄位：date, time, item, amount, account_id' });
+        }
+        const parsedAmount = Math.abs(Number(amount));
+        if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+            return res.status(400).json({ error: '金額必須為有效正數' });
+        }
+        if (type && !['income', 'expense'].includes(type)) {
+            return res.status(400).json({ error: 'type 僅允許 income 或 expense' });
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({ error: '日期格式錯誤，請使用 YYYY-MM-DD' });
+        }
+        if (!/^\d{2}:\d{2}$/.test(time)) {
+            return res.status(400).json({ error: '時間格式錯誤，請使用 HH:mm' });
         }
 
         const stmt = db.prepare(`
@@ -93,7 +107,7 @@ router.post('/', (req, res) => {
 
         const result = stmt.run({
             date, time, item,
-            amount: Math.abs(Number(amount)),
+            amount: parsedAmount,
             type: type || 'expense',
             description: description || '',
             account_id: Number(account_id),
@@ -134,6 +148,23 @@ router.put('/:id', (req, res) => {
         description = @description, account_id = @account_id, category_id = @category_id
       WHERE id = @id
     `);
+
+        // F-03: PUT 輸入校驗
+        if (amount !== undefined) {
+            const parsedAmt = Math.abs(Number(amount));
+            if (!Number.isFinite(parsedAmt) || parsedAmt <= 0) {
+                return res.status(400).json({ error: '金額必須為有效正數' });
+            }
+        }
+        if (type && !['income', 'expense'].includes(type)) {
+            return res.status(400).json({ error: 'type 僅允許 income 或 expense' });
+        }
+        if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+            return res.status(400).json({ error: '日期格式錯誤' });
+        }
+        if (time && !/^\d{2}:\d{2}$/.test(time)) {
+            return res.status(400).json({ error: '時間格式錯誤' });
+        }
 
         stmt.run({
             id: Number(id),

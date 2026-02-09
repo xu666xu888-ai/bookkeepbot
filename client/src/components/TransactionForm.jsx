@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { api } from '../api';
 import ActionSheet from './ActionSheet';
 
-export default function TransactionForm({ accounts, categories, transaction, onSave, onClose, onBatchSave }) {
+export default function TransactionForm({ accounts, categories, transaction, onSave, onDelete, onClose }) {
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0].slice(0, 5);
+    // F-04: 使用本地時區避免跨日錯誤
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     const [form, setForm] = useState({
         date: transaction?.date || todayStr,
@@ -109,9 +110,8 @@ export default function TransactionForm({ accounts, categories, transaction, onS
     };
 
     const handleDelete = () => {
-        if (transaction && confirm('確定要刪除這筆交易嗎？')) {
-            onClose();
-            window.dispatchEvent(new CustomEvent('delete-tx', { detail: transaction.id }));
+        if (transaction && onDelete) {
+            onDelete(transaction.id);
         }
     };
 

@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+// F-01: 強制要求 JWT_SECRET，不允許弱預設值
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.error('❌ 致命錯誤：JWT_SECRET 環境變數未設定，服務中止');
+    process.exit(1);
+}
 const JWT_EXPIRY = '15m'; // 15 分鐘過期
 
 /**

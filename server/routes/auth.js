@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticator } = require('otplib');
 const { generateToken } = require('../middleware/auth');
+const { loginRateLimit } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -10,7 +11,7 @@ const TOTP_SECRET = process.env.ADMIN_TOTP_SECRET;
  * POST /api/auth/login
  * Body: { code: "123456" }
  */
-router.post('/login', (req, res) => {
+router.post('/login', loginRateLimit, (req, res) => {
     const { code } = req.body;
 
     if (!code || code.length !== 6) {

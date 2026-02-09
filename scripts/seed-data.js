@@ -32,20 +32,19 @@ console.log(`✅ 分類建立完成:`, Object.keys(categories).join(', '));
 
 // ============ 3. 匯入交易 ============
 const insertTx = db.prepare(`
-    INSERT INTO transactions (date, time, item, amount, description, account_id, category_id)
-    VALUES (@date, @time, @item, @amount, @description, @account_id, @category_id)
+    INSERT INTO transactions (date, time, item, amount, type, description, account_id, category_id)
+    VALUES (@date, @time, @item, @amount, @type, @description, @account_id, @category_id)
 `);
 
-// 收入: amount 為負數
-// 支出: amount 為正數
+// F-06: 使用 type 欄位區分收入/支出，amount 永遠為正數
 const transactions = [
     // ===== 收入（公積金）1月 =====
-    { date: '2026-01-31', time: '00:00', item: '牛公積金', amount: -500000, description: '', category: '公積金' },
-    { date: '2026-01-31', time: '00:00', item: '666公積金', amount: -500000, description: '', category: '公積金' },
-    { date: '2026-01-31', time: '00:00', item: '777公積金', amount: -500000, description: '', category: '公積金' },
-    { date: '2026-01-31', time: '00:00', item: '888公積金', amount: -500000, description: '', category: '公積金' },
-    { date: '2026-01-31', time: '00:00', item: 'JY公積金', amount: -500000, description: '', category: '公積金' },
-    { date: '2026-01-31', time: '00:00', item: '印度公積金', amount: -500000, description: '', category: '公積金' },
+    { date: '2026-01-31', time: '00:00', item: '牛公積金', amount: 500000, type: 'income', description: '', category: '公積金' },
+    { date: '2026-01-31', time: '00:00', item: '666公積金', amount: 500000, type: 'income', description: '', category: '公積金' },
+    { date: '2026-01-31', time: '00:00', item: '777公積金', amount: 500000, type: 'income', description: '', category: '公積金' },
+    { date: '2026-01-31', time: '00:00', item: '888公積金', amount: 500000, type: 'income', description: '', category: '公積金' },
+    { date: '2026-01-31', time: '00:00', item: 'JY公積金', amount: 500000, type: 'income', description: '', category: '公積金' },
+    { date: '2026-01-31', time: '00:00', item: '印度公積金', amount: 500000, type: 'income', description: '', category: '公積金' },
 
     // ===== 支出 — 1月 =====
     { date: '2026-01-31', time: '00:00', item: '送禮（單位）', amount: 190000, description: '', category: '送禮' },
@@ -84,15 +83,16 @@ const insertMany = db.transaction(() => {
             date: tx.date,
             time: tx.time,
             item: tx.item,
-            amount: tx.amount,
+            amount: Math.abs(tx.amount),
+            type: tx.type || 'expense',
             description: tx.description,
             account_id: ACCOUNT_ID,
             category_id: categories[tx.category] || null,
         });
         count++;
-        const type = tx.amount < 0 ? '收入' : '支出';
+        const typeLabel = tx.type === 'income' ? '收入' : '支出';
         const display = Math.abs(tx.amount).toLocaleString();
-        console.log(`  ${type} | ${tx.date} | ${tx.item} | $${display}`);
+        console.log(`  ${typeLabel} | ${tx.date} | ${tx.item} | $${display}`);
     }
     return count;
 });
@@ -100,8 +100,8 @@ const insertMany = db.transaction(() => {
 const total = insertMany();
 
 // 統計
-const incomeTotal = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
-const expenseTotal = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+const incomeTotal = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+const expenseTotal = transactions.filter(t => t.type !== 'income').reduce((s, t) => s + t.amount, 0);
 
 console.log(`\n✅ 匯入完成！共 ${total} 筆`);
 console.log(`   收入: $${incomeTotal.toLocaleString()}`);

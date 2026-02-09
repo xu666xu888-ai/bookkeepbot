@@ -19,8 +19,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/accounts', require('./routes/accounts'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/ai', require('./routes/ai'));
-
-
+app.use('/api/telegram', require('./routes/telegram')); // F-07: 掛載 Telegram webhook
 
 // 健康檢查 (必須在 catch-all 之前)
 app.get('/health', (req, res) => {

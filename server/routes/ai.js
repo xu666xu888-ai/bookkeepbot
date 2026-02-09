@@ -30,14 +30,16 @@ router.post('/parse', authMiddleware, async (req, res) => {
         const accounts = db.prepare('SELECT id, name FROM accounts').all();
         const categories = db.prepare('SELECT id, name FROM categories').all();
 
-        const today = new Date().toISOString().split('T')[0];
-        const now = new Date().toTimeString().split(' ')[0].slice(0, 5);
+        // F-04: 使用本地時區避免跨日錯誤
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         const systemPrompt = `你是一個記帳助手。請將用戶輸入解析為 JSON 格式。
 
 ## 當前資訊
 - 今天日期：${today} (${new Date().toLocaleDateString('zh-TW', { weekday: 'long' })})
-- 現在時間：${now}
+- 現在時間：${nowTime}
 - 可用帳戶：${accounts.map(a => a.name).join('、')} (預設：${accounts[0]?.name})
 - 可用分類：${categories.map(c => c.name).join('、')}
 
