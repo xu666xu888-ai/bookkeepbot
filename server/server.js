@@ -82,45 +82,6 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// 臨時數據導入端點 (用完即刪)
-app.post('/api/debug/import', (req, res) => {
-    try {
-        const db = require('./db');
-        const { accounts, categories, transactions } = req.body;
-        if (!accounts || !categories || !transactions) {
-            return res.status(400).json({ error: 'Missing data fields' });
-        }
-
-        const insertAccount = db.prepare('INSERT OR IGNORE INTO accounts (id, name, created_at) VALUES (?, ?, ?)');
-        const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (id, name) VALUES (?, ?)');
-        const insertTransaction = db.prepare('INSERT OR IGNORE INTO transactions (id, date, time, item, amount, description, account_id, category_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-
-        const importAll = db.transaction(() => {
-            for (const a of accounts) {
-                insertAccount.run(a.id, a.name, a.created_at);
-            }
-            for (const c of categories) {
-                insertCategory.run(c.id, c.name);
-            }
-            for (const t of transactions) {
-                insertTransaction.run(t.id, t.date, t.time, t.item, t.amount, t.description, t.account_id, t.category_id, t.created_at);
-            }
-        });
-
-        importAll();
-
-        res.json({
-            success: true,
-            imported: {
-                accounts: accounts.length,
-                categories: categories.length,
-                transactions: transactions.length
-            }
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // 生產環境：提供前端靜態檔案 (catch-all 必須放最後)
 if (process.env.NODE_ENV === 'production') {
