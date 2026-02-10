@@ -2,14 +2,22 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+app.use(helmet({
+    contentSecurityPolicy: false, // CSP 由前端 Vite 管理
+    crossOriginEmbedderPolicy: false, // Telegram WebApp 需要嵌入
+}));
 app.use(cors({
-    exposedHeaders: ['X-New-Token'] // 讓前端能讀取滑動視窗 JWT
+    origin: process.env.NODE_ENV === 'production'
+        ? [process.env.MINI_APP_URL, 'https://web.telegram.org'].filter(Boolean)
+        : '*',
+    exposedHeaders: ['X-New-Token']
 }));
 app.use(express.json());
 

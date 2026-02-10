@@ -14,13 +14,15 @@ const crypto = require('crypto');
  */
 function validateInitData(initData, botToken) {
     try {
+        // 🔍 臨時 debug（確認 Cloud Run token 後刪除）
+        const tokenHex = Buffer.from(botToken || '').toString('hex');
+        console.log('🔍 TOKEN_DEBUG len=' + (botToken?.length || 0) + ' hex_start=' + tokenHex.substring(0, 20) + ' hex_end=' + tokenHex.substring(tokenHex.length - 10));
         const params = new URLSearchParams(initData);
         const hash = params.get('hash');
         if (!hash) return { valid: false, user: null };
 
-        // 移除 hash 和 signature（Bot API 8.0+ 新增，不參與 HMAC 計算）
+        // 僅移除 hash（用於比對），signature 保留在 data-check-string 中
         params.delete('hash');
-        params.delete('signature');
 
         // 按字母排序組成 data-check-string
         const dataCheckString = [...params.entries()]

@@ -36,18 +36,18 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
             <div className="min-h-dvh flex items-center justify-center px-6">
                 <div className="w-full max-w-xs animate-scale-in">
                     <div className="text-center mb-6">
-                        <div className="text-4xl mb-3">🔑</div>
+                        <div className="text-4xl mb-3">🔒</div>
                         <h1 className="text-lg font-semibold text-text">
-                            歡迎，{user?.first_name || '用戶'}
+                            Access Required
                         </h1>
-                        <p className="text-sm text-text-dim mt-1">首次使用，請輸入存取碼</p>
+                        <p className="text-sm text-text-dim mt-1">Enter your access code</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="glass rounded-2xl p-5">
                         <input
                             type="password"
                             autoComplete="off"
-                            placeholder="存取碼"
+                            placeholder="Code"
                             value={token}
                             onChange={e => setToken(e.target.value)}
                             disabled={loading}
@@ -69,7 +69,7 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
                             className="w-full mt-4 py-3 rounded-xl bg-accent text-white font-medium
                            hover:bg-accent-hover transition-all disabled:opacity-50"
                         >
-                            {loading ? '驗證中...' : '確認'}
+                            {loading ? 'Verifying...' : 'Submit'}
                         </button>
                     </form>
                 </div>
@@ -82,7 +82,7 @@ export default function TelegramGate({ status, user, onAuthorized, error: parent
         <div className="min-h-dvh flex items-center justify-center">
             <div className="text-center animate-scale-in">
                 <div className="w-8 h-8 border-2 border-accent/30 border-t-accent rounded-full animate-spin mx-auto" />
-                <p className="text-sm text-text-dim mt-4">正在驗證 Telegram 身份…</p>
+                <p className="text-sm text-text-dim mt-4">Verifying…</p>
             </div>
         </div>
     );

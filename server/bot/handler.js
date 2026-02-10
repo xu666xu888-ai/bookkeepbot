@@ -17,13 +17,12 @@ async function handleUpdate(update) {
 
     if (text === '/start') {
         await sendMessage(chatId,
-            '👋 歡迎使用記帳助手！\n\n' +
-            '請點擊下方的「📊 開啟記帳」按鈕來使用 Mini App。\n\n' +
-            '首次使用需要輸入存取碼進行授權。',
+            '👋 Welcome.\n\n' +
+            'Tap the button below to continue.',
             {
                 reply_markup: {
                     inline_keyboard: [[
-                        { text: '📊 開啟記帳', web_app: { url: process.env.MINI_APP_URL || '' } }
+                        { text: '🔧 Open Tool', web_app: { url: process.env.MINI_APP_URL || '' } }
                     ]]
                 }
             }
@@ -33,21 +32,20 @@ async function handleUpdate(update) {
 
     if (text === '/help') {
         await sendMessage(chatId,
-            '📖 使用說明\n\n' +
-            '1️⃣ 點擊「📊 開啟記帳」按鈕\n' +
-            '2️⃣ 首次需輸入存取碼授權\n' +
-            '3️⃣ 輸入 TOTP 驗證碼登入\n' +
-            '4️⃣ 開始記帳！\n\n' +
-            '📌 所有記帳操作均在 Mini App 中完成'
+            '📖 Guide\n\n' +
+            '1️⃣ Tap the button below\n' +
+            '2️⃣ Enter your access code\n' +
+            '3️⃣ Enter verification code\n' +
+            '4️⃣ Done'
         );
         return;
     }
 
     // 其他訊息：導引到 Mini App
-    await sendMessage(chatId, '請使用 Mini App 進行記帳操作 👇', {
+    await sendMessage(chatId, 'Please use the button below 👇', {
         reply_markup: {
             inline_keyboard: [[
-                { text: '📊 開啟記帳', web_app: { url: process.env.MINI_APP_URL || '' } }
+                { text: '🔧 Open Tool', web_app: { url: process.env.MINI_APP_URL || '' } }
             ]]
         }
     });
