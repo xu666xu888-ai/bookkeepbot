@@ -14,9 +14,6 @@ const crypto = require('crypto');
  */
 function validateInitData(initData, botToken) {
     try {
-        // 🔍 臨時 debug（確認 Cloud Run token 後刪除）
-        const tokenHex = Buffer.from(botToken || '').toString('hex');
-        console.log('🔍 TOKEN_DEBUG len=' + (botToken?.length || 0) + ' hex_start=' + tokenHex.substring(0, 20) + ' hex_end=' + tokenHex.substring(tokenHex.length - 10));
         const params = new URLSearchParams(initData);
         const hash = params.get('hash');
         if (!hash) return { valid: false, user: null };
